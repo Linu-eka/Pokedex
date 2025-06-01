@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
 import '../models/pokemon.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
-class PokemonCard extends StatelessWidget {
+class PokemonCard extends StatefulWidget{
   final Pokemon pokemon;
 
   const PokemonCard({required this.pokemon, super.key});
+
+  @override
+  State<PokemonCard> createState() => _PokemonCardState();
+}
+
+
+class _PokemonCardState extends State<PokemonCard> {
+  File? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+      // Here you can also save the image to the Pokemon model or perform other actions
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -13,13 +36,25 @@ class PokemonCard extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            const Expanded(
+            Expanded(
               flex: 7,
-              child:_EmptySection()
+              child: Stack(
+                children: [
+                  _EmptySection(selectedImage: _selectedImage),
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: ElevatedButton(
+                      onPressed: _pickImage, 
+                      child: const Text('Take Photo'),
+                    ),
+                  )
+                ],
+              ),
             ),
             Expanded(
               flex: 3,
-              child: _PokemonInfoSection(pokemon: pokemon),
+              child: _PokemonInfoSection(pokemon: widget.pokemon),
             ),
           ],
         ),
@@ -31,7 +66,8 @@ class PokemonCard extends StatelessWidget {
 
 //Empty section with border for user image
 class _EmptySection extends StatelessWidget {
-  const _EmptySection();
+  final File? selectedImage;
+  const _EmptySection({this.selectedImage});
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +76,15 @@ class _EmptySection extends StatelessWidget {
         border: Border.all(color: Colors.black, width: 1.0),
         borderRadius: BorderRadius.circular(8.0),
       ),
+      child: selectedImage != null
+          ? Image.file(
+              selectedImage!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+            )
+          : const Center(
+              child: Text('No Image Selected'),
+            ),
     );
   }
 }
