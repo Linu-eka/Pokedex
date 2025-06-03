@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-  <external-path name="external_files" path="."/>
-</paths>
-<!-- This file is used to define the paths for the FileProvider in Android.
-     It allows the app to share files with other apps securely. -->

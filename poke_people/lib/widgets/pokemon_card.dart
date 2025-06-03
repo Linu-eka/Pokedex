@@ -18,7 +18,25 @@ class _PokemonCardState extends State<PokemonCard> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Image Source'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(ImageSource.camera),
+            child: const Text('Camera'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(ImageSource.gallery),
+            child: const Text('Gallery'),
+          ),
+        ],
+      ),
+    );
+    if (source == null) return; // User cancelled the dialog
+
+    final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
       setState(() {
@@ -37,20 +55,18 @@ class _PokemonCardState extends State<PokemonCard> {
         child: Column(
           children: [
             Expanded(
-              flex: 7,
+              flex: 6,
               child: Stack(
                 children: [
                   _EmptySection(selectedImage: _selectedImage),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: ElevatedButton(
-                      onPressed: _pickImage, 
-                      child: const Text('Take Photo'),
-                    ),
-                  )
                 ],
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _AddPhotoButton(onPressed: _pickImage)
+                ],     
             ),
             Expanded(
               flex: 3,
@@ -61,6 +77,20 @@ class _PokemonCardState extends State<PokemonCard> {
       ),
     );
 // ...existing code...
+  }
+}
+
+class _AddPhotoButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _AddPhotoButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      child: const Text('Add Photo'),
+    );
   }
 }
 
