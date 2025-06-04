@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import '../models/pokemon.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'pokemon_card.dart';
+  
 class PokemonGrid extends StatelessWidget {
   final List<Pokemon> pokemonList;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final Map<String, bool> _imageExistsCache = {};
 
   PokemonGrid({super.key, required this.pokemonList});
 
   Future<bool> _checkImageExists(String pokemonId) async {
+
+    // Check if the image existence is already cached
+    if (_imageExistsCache.containsKey(pokemonId)) {
+      return _imageExistsCache[pokemonId]!;
+    }
+    // If not cached, check Firestore for the image URL
     final uid = _auth.currentUser?.uid;
     if (uid == null) return false;
 
@@ -48,6 +56,14 @@ class PokemonGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final pokemon = pokemonList[index];
         return GestureDetector(
+          onTap: () {
+            // Handle tap on the Pokemon card
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (_) => PokemonCard(pokemon: pokemon))
+              );
+            // You can navigate to a detail page or show a dialog, etc.
+          },
           child: FutureBuilder<bool>(
             future: _checkImageExists(pokemon.id.toString()),
             builder: (context, snapshot) {
