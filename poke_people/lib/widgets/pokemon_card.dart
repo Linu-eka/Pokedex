@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../models/pokemon.dart';
 import 'dart:io';
@@ -15,6 +18,61 @@ class PokemonCard extends StatefulWidget{
 
 class _PokemonCardState extends State<PokemonCard> {
   File? _selectedImage;
+  String? _imageUrl;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState(){
+    super.initState();
+    // Load the image URL from Firestore if it exists
+    _loadImageUrl();
+  }
+
+  Future<void> _loadImageUrl() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('pokedex')
+        .doc(widget.pokemon.id.toString())
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      setState(() {
+        _imageUrl = doc.data()?['imageUrl'] as String?;
+      });
+    }
+  }
+
+  Future<void> _uploadImage(File file) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final storageRef = FirebaseStorage.instance
+    .ref()
+    .child('user_uploads')
+    .child(uid)
+    .child('${widget.pokemon.id}.jpg');
+
+    await storageRef.putFile(file);
+    final downloadUrl = await storageRef.getDownloadURL();
+
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('pokedex')
+        .doc(widget.pokemon.id.toString())
+        .set({
+      'imageUrl': downloadUrl, 
+    }, SetOptions(merge: true));
+
+    setState(() {
+      _imageUrl = downloadUrl;
+    });
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -37,14 +95,18 @@ class _PokemonCardState extends State<PokemonCard> {
     if (source == null) return; // User cancelled the dialog
 
     final pickedFile = await picker.pickImage(source: source);
+    
+    if (pickedFile == null) return; // User cancelled the image picking
+    
+    final file = File(pickedFile.path);
+    setState(() {
+      _selectedImage = file;
+    });
 
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
-      // Here you can also save the image to the Pokemon model or perform other actions
+  await _uploadImage(file);
+    
     }
-  }
+  
 
 
   @override
@@ -58,14 +120,14 @@ class _PokemonCardState extends State<PokemonCard> {
               flex: 6,
               child: Stack(
                 children: [
-                  _EmptySection(selectedImage: _selectedImage),
+                  _PersonSection(selectedImage: _selectedImage, imageUrl: _imageUrl,),
                 ],
               ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _AddPhotoButton(onPressed: _pickImage)
+                _AddPhotoButton(onPressed: _pickImage),
                 ],     
             ),
             Expanded(
@@ -79,6 +141,7 @@ class _PokemonCardState extends State<PokemonCard> {
 // ...existing code...
   }
 }
+
 
 class _AddPhotoButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -95,26 +158,34 @@ class _AddPhotoButton extends StatelessWidget {
 }
 
 //Empty section with border for user image
-class _EmptySection extends StatelessWidget {
+class _PersonSection extends StatelessWidget {
   final File? selectedImage;
-  const _EmptySection({this.selectedImage});
+  final String? imageUrl;
+  const _PersonSection({this.selectedImage,this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
+    Widget imageWidget;
+    if (selectedImage != null) {
+      imageWidget = Image.file(
+        selectedImage!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+      );
+    } else if (imageUrl != null) {
+      imageWidget = Image.network(
+        imageUrl!,
+        fit: BoxFit.cover
+      );
+    } else {
+      imageWidget = const Center(child: Text('No Image Selected'));
+    }
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.black, width: 1.0),
         borderRadius: BorderRadius.circular(8.0),
       ),
-      child: selectedImage != null
-          ? Image.file(
-              selectedImage!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
-            )
-          : const Center(
-              child: Text('No Image Selected'),
-            ),
+      child: imageWidget,
     );
   }
 }

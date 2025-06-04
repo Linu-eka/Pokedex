@@ -1,10 +1,12 @@
 [
   {
+    "id": 1,
     "name": "Bulbasaur",
     "imageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
     "userImagePath": null
   },
   {
+    "id": 2,
     "name": "Pikachu",
     "imageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
     "userImagePath": null
