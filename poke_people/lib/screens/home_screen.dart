@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/pokemon.dart';
 import '../widgets/pokemon_card.dart';
+import '../widgets/pokemon_grid.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,20 +35,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Pokémon Favorites"),
+        title: const Text('All Pokemon'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+            onPressed: () {
+              FirebaseAuth.instance.signOut();
             },
           ),
         ],
       ),
-      body: GridView.count(
-        crossAxisCount: 1,
-        children: _pokemonList.map((p) => PokemonCard(pokemon: p)).toList(),
+      body: PokemonGrid(
+        pokemonList: _pokemonList,
       ),
     );
   }
