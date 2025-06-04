@@ -42,7 +42,6 @@ def fetch_all_pokemon():
             "generation": generation,
             "name": name,
             "imageUrl": image_url,
-            "userImagePath": None
         })
     
     return pokemon_list
