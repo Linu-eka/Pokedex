@@ -107,42 +107,93 @@ class _PokemonCardState extends State<PokemonCard> {
     
     }
   
+  Future<void> _deleteImage() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('user_uploads')
+        .child(uid)
+        .child('${widget.pokemon.id}.jpg');
+
+    await storageRef.delete();
+
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('pokedex')
+        .doc(widget.pokemon.id.toString())
+        .set({
+      'imageUrl': FieldValue.delete(),
+    }, SetOptions(merge: true));
+
+    setState(() {
+      _selectedImage = null;
+      _imageUrl = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 6,
-              child: Stack(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.pokemon.name),
+      ),
+    
+    
+      body : Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _PersonSection(selectedImage: _selectedImage, imageUrl: _imageUrl,),
+                  if (_selectedImage != null || _imageUrl != null)
+                    _DeleteImageButton(onPressed: _deleteImage),
                 ],
               ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _AddPhotoButton(onPressed: _pickImage),
-                ],     
-            ),
-            Expanded(
-              flex: 3,
-              child: _PokemonInfoSection(pokemon: widget.pokemon),
-            ),
-          ],
+              Expanded(
+                flex: 8,
+                child: Stack(
+                  children: [
+                    _PersonSection(selectedImage: _selectedImage, imageUrl: _imageUrl,),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _AddPhotoButton(onPressed: _pickImage),
+                  ],     
+              ),
+              Expanded(
+                flex: 4,
+                child: _PokemonInfoSection(pokemon: widget.pokemon),
+              ),
+            ],
+          ),
         ),
       ),
     );
-// ...existing code...
   }
 }
 
+class _DeleteImageButton extends StatelessWidget {
+  final VoidCallback onPressed;
 
+  const _DeleteImageButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.delete),
+      onPressed: onPressed,
+      tooltip: 'Delete Image',
+    );
+  }
+}
 class _AddPhotoButton extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -173,17 +224,22 @@ class _PersonSection extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
       );
     } else if (imageUrl != null) {
-      imageWidget = Image.network(
-        imageUrl!,
-        fit: BoxFit.cover
+      imageWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(8.0),
+        child: Image.network(
+          imageUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+        ),
       );
     } else {
       imageWidget = const Center(child: Text('No Image Selected'));
     }
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 1.0),
+        color: Colors.grey[200],
         borderRadius: BorderRadius.circular(8.0),
+        
       ),
       child: imageWidget,
     );
@@ -202,7 +258,7 @@ class _PokemonInfoSection extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Expanded(
-          flex: 3,
+          flex: 2,
           child: Image.network(
             pokemon.imageUrl,
             fit: BoxFit.contain,
@@ -210,7 +266,7 @@ class _PokemonInfoSection extends StatelessWidget {
           ),
         ),
         Expanded(
-          flex: 1,
+          flex: 2,
           child: Text(
             pokemon.name,
             style: Theme.of(context).textTheme.titleLarge,
